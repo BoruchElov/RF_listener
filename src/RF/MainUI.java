@@ -1,133 +1,150 @@
 package RF;
 
 import com.fazecast.jSerialComm.SerialPort;
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.ActionEvent;
+import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.concurrent.Task;
+import javafx.geometry.Insets;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+
 import java.util.Arrays;
 
 /**
- * Простой графический интерфейс для настройки соединения и вызова функций Inverters.
+ * Простой графический интерфейс на JavaFX для настройки соединения
+ * и вызова функций класса {@link Inverters}.
  */
-public class MainUI {
-    private JFrame frame;
-    private JComboBox<String> portCombo;
-    private JComboBox<Integer> baudCombo;
-    private JComboBox<Integer> dataBitsCombo;
-    private JComboBox<String> parityCombo;
-    private JComboBox<String> stopBitsCombo;
-    private JButton connectButton;
+public class MainUI extends Application {
 
-    private JComboBox<String> funcCombo;
-    private JTextField addrField;
-    private JTextField parField;
-    private JTextField valueField;
-    private JButton executeButton;
-    private JTextArea outputArea;
+    private ComboBox<String> portCombo;
+    private ComboBox<Integer> baudCombo;
+    private ComboBox<Integer> dataBitsCombo;
+    private ComboBox<String> parityCombo;
+    private ComboBox<Integer> stopBitsCombo;
+    private Button connectButton;
+
+    private ComboBox<String> funcCombo;
+    private TextField addrField;
+    private TextField parField;
+    private TextField valueField;
+    private Button executeButton;
+    private TextArea outputArea;
 
     private cMAC mac;
     private ARP arp;
     private Inverters invs;
 
-    public MainUI() {
-        initUI();
+    @Override
+    public void start(Stage stage) {
+        initUI(stage);
     }
 
-    private void initUI() {
-        frame = new JFrame("RF Listener");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLayout(new BorderLayout());
+    private void initUI(Stage stage) {
+        portCombo = new ComboBox<>();
+        portCombo.getItems().addAll(cMAC.getAvailablePorts());
+        if (!portCombo.getItems().isEmpty()) {
+            portCombo.getSelectionModel().select(0);
+        }
 
-        // --- Панель соединения ---
-        JPanel connPanel = new JPanel(new GridLayout(2,6));
+        baudCombo = new ComboBox<>();
+        baudCombo.getItems().addAll(9600, 19200, 38400, 57600, 115200);
+        baudCombo.getSelectionModel().select(Integer.valueOf(9600));
 
-        portCombo = new JComboBox<>(cMAC.getAvailablePorts());
-        baudCombo = new JComboBox<>(new Integer[]{9600,19200,38400,57600,115200});
-        dataBitsCombo = new JComboBox<>(new Integer[]{5,6,7,8});
-        parityCombo = new JComboBox<>(new String[]{"None","Odd","Even"});
-        stopBitsCombo = new JComboBox<>(new String[]{"1","2"});
-        connectButton = new JButton("Connect");
+        dataBitsCombo = new ComboBox<>();
+        dataBitsCombo.getItems().addAll(5, 6, 7, 8);
+        dataBitsCombo.getSelectionModel().select(Integer.valueOf(8));
 
-        connPanel.add(new JLabel("Port"));
-        connPanel.add(new JLabel("Baud"));
-        connPanel.add(new JLabel("Data bits"));
-        connPanel.add(new JLabel("Parity"));
-        connPanel.add(new JLabel("Stop bits"));
-        connPanel.add(new JLabel(""));
+        parityCombo = new ComboBox<>();
+        parityCombo.getItems().addAll("None", "Odd", "Even");
+        parityCombo.getSelectionModel().select("None");
 
-        connPanel.add(portCombo);
-        connPanel.add(baudCombo);
-        connPanel.add(dataBitsCombo);
-        connPanel.add(parityCombo);
-        connPanel.add(stopBitsCombo);
-        connPanel.add(connectButton);
+        stopBitsCombo = new ComboBox<>();
+        stopBitsCombo.getItems().addAll(1, 2);
+        stopBitsCombo.getSelectionModel().select(Integer.valueOf(1));
 
-        frame.add(connPanel, BorderLayout.NORTH);
+        connectButton = new Button("Connect");
+        connectButton.setOnAction(e -> onConnect());
 
-        // --- Панель функций ---
-        JPanel funcPanel = new JPanel(new GridLayout(2,5));
-        funcCombo = new JComboBox<>(new String[]{"BlinkLedStart","BlinkLedStop","SetParameter","GetParameter"});
-        addrField = new JTextField();
-        parField = new JTextField();
-        valueField = new JTextField();
-        executeButton = new JButton("Выполнить");
+        GridPane connGrid = new GridPane();
+        connGrid.setHgap(5);
+        connGrid.setVgap(5);
+        connGrid.add(new Label("Port"), 0, 0);
+        connGrid.add(new Label("Baud"), 1, 0);
+        connGrid.add(new Label("Data bits"), 2, 0);
+        connGrid.add(new Label("Parity"), 3, 0);
+        connGrid.add(new Label("Stop bits"), 4, 0);
+        connGrid.add(portCombo, 0, 1);
+        connGrid.add(baudCombo, 1, 1);
+        connGrid.add(dataBitsCombo, 2, 1);
+        connGrid.add(parityCombo, 3, 1);
+        connGrid.add(stopBitsCombo, 4, 1);
+        connGrid.add(connectButton, 5, 1);
 
-        funcPanel.add(new JLabel("Function"));
-        funcPanel.add(new JLabel("Addr (hex)"));
-        funcPanel.add(new JLabel("Par"));
-        funcPanel.add(new JLabel("Value"));
-        funcPanel.add(new JLabel(""));
+        funcCombo = new ComboBox<>();
+        funcCombo.getItems().addAll("BlinkLedStart", "BlinkLedStop", "SetParameter", "GetParameter");
+        funcCombo.getSelectionModel().select(0);
+        funcCombo.setOnAction(e -> updateFuncFields());
 
-        funcPanel.add(funcCombo);
-        funcPanel.add(addrField);
-        funcPanel.add(parField);
-        funcPanel.add(valueField);
-        funcPanel.add(executeButton);
+        addrField = new TextField();
+        parField = new TextField();
+        valueField = new TextField();
+        executeButton = new Button("Выполнить");
+        executeButton.setOnAction(e -> onExecute());
 
-        frame.add(funcPanel, BorderLayout.CENTER);
+        GridPane funcGrid = new GridPane();
+        funcGrid.setHgap(5);
+        funcGrid.setVgap(5);
+        funcGrid.add(new Label("Function"), 0, 0);
+        funcGrid.add(new Label("Addr (hex)"), 1, 0);
+        funcGrid.add(new Label("Par"), 2, 0);
+        funcGrid.add(new Label("Value"), 3, 0);
+        funcGrid.add(funcCombo, 0, 1);
+        funcGrid.add(addrField, 1, 1);
+        funcGrid.add(parField, 2, 1);
+        funcGrid.add(valueField, 3, 1);
+        funcGrid.add(executeButton, 4, 1);
 
-        // --- Вывод ---
-        outputArea = new JTextArea(10,40);
+        outputArea = new TextArea();
         outputArea.setEditable(false);
-        frame.add(new JScrollPane(outputArea), BorderLayout.SOUTH);
+        outputArea.setPrefRowCount(10);
 
-        // Action listeners
-        connectButton.addActionListener(this::onConnect);
-        executeButton.addActionListener(this::onExecute);
+        VBox root = new VBox(10, connGrid, funcGrid, outputArea);
+        root.setPadding(new Insets(10));
 
-        funcCombo.addActionListener(e -> updateFuncFields());
+        stage.setTitle("RF Listener");
+        stage.setScene(new Scene(root));
+        stage.show();
+
         updateFuncFields();
-
-        frame.pack();
-        frame.setLocationRelativeTo(null);
     }
 
     private void updateFuncFields() {
-        String func = (String) funcCombo.getSelectedItem();
+        String func = funcCombo.getSelectionModel().getSelectedItem();
         boolean needsPar = "SetParameter".equals(func);
         boolean needsValue = "SetParameter".equals(func);
 
-        parField.setEnabled(needsPar);
-        valueField.setEnabled(needsValue);
+        parField.setDisable(!needsPar);
+        valueField.setDisable(!needsValue);
     }
 
-    private void onConnect(ActionEvent e) {
+    private void onConnect() {
         if (mac != null) {
-            try {
-                mac.close();
-            } catch (Exception ex) { /* ignore */ }
+            try { mac.close(); } catch (Exception ignored) {}
             mac = null; arp = null; invs = null;
             connectButton.setText("Connect");
-            outputArea.append("Disconnected\n");
+            output("Disconnected");
             return;
         }
 
-        String port = (String) portCombo.getSelectedItem();
-        int baud = (Integer) baudCombo.getSelectedItem();
-        int dataBits = (Integer) dataBitsCombo.getSelectedItem();
-        int stopBits = "1".equals(stopBitsCombo.getSelectedItem()) ? SerialPort.ONE_STOP_BIT : SerialPort.TWO_STOP_BITS;
+        String port = portCombo.getSelectionModel().getSelectedItem();
+        int baud = baudCombo.getSelectionModel().getSelectedItem();
+        int dataBits = dataBitsCombo.getSelectionModel().getSelectedItem();
+        int stopBits = stopBitsCombo.getSelectionModel().getSelectedItem() == 1 ? SerialPort.ONE_STOP_BIT : SerialPort.TWO_STOP_BITS;
         int parity;
-        switch ((String) parityCombo.getSelectedItem()) {
+        switch (parityCombo.getSelectionModel().getSelectedItem()) {
             case "Odd": parity = SerialPort.ODD_PARITY; break;
             case "Even": parity = SerialPort.EVEN_PARITY; break;
             default: parity = SerialPort.NO_PARITY; break;
@@ -141,58 +158,69 @@ public class MainUI {
         mac.registerHandler(0x02, invs);
 
         connectButton.setText("Disconnect");
-        outputArea.append("Connected to " + port + "\n");
+        output("Connected to " + port);
     }
 
-    private void onExecute(ActionEvent e) {
+    private void onExecute() {
         if (invs == null) {
-            outputArea.append("Not connected\n");
+            output("Not connected");
             return;
         }
 
-        String func = (String) funcCombo.getSelectedItem();
+        String func = funcCombo.getSelectionModel().getSelectedItem();
         String addrText = addrField.getText().trim();
         if (addrText.isEmpty()) {
-            outputArea.append("Address required\n");
+            output("Address required");
             return;
         }
 
-        try {
-            int addrVal = (int)Long.parseLong(addrText,16);
-            Address addr = new Address(addrVal);
-            boolean res;
-            switch (func) {
-                case "BlinkLedStart":
-                    res = invs.BlinkLedStart(addr,false);
-                    outputArea.append("BlinkLedStart: " + res + "\n");
-                    break;
-                case "BlinkLedStop":
-                    res = invs.BlinkLedStop(addr,false);
-                    outputArea.append("BlinkLedStop: " + res + "\n");
-                    break;
-                case "SetParameter":
-                    int par = Integer.parseInt(parField.getText().trim());
-                    float val = Float.parseFloat(valueField.getText().trim());
-                    res = invs.SetParameter(addr, par, val);
-                    outputArea.append("SetParameter: " + res + "\n");
-                    break;
-                case "GetParameter":
-                    float[] vals = new float[20];
-                    res = invs.GetParameter(addr, vals);
-                    if (res) {
-                        outputArea.append("GetParameter: " + Arrays.toString(vals) + "\n");
-                    } else {
-                        outputArea.append("GetParameter: false\n");
+        Task<Void> task = new Task<>() {
+            @Override
+            protected Void call() {
+                try {
+                    int addrVal = (int) Long.parseLong(addrText, 16);
+                    Address addr = new Address(addrVal);
+                    boolean res;
+                    switch (func) {
+                        case "BlinkLedStart":
+                            res = invs.BlinkLedStart(addr, false);
+                            output("BlinkLedStart: " + res);
+                            break;
+                        case "BlinkLedStop":
+                            res = invs.BlinkLedStop(addr, false);
+                            output("BlinkLedStop: " + res);
+                            break;
+                        case "SetParameter":
+                            int par = Integer.parseInt(parField.getText().trim());
+                            float val = Float.parseFloat(valueField.getText().trim());
+                            res = invs.SetParameter(addr, par, val);
+                            output("SetParameter: " + res);
+                            break;
+                        case "GetParameter":
+                            float[] vals = new float[20];
+                            res = invs.GetParameter(addr, vals);
+                            if (res) {
+                                output("GetParameter: " + Arrays.toString(vals));
+                            } else {
+                                output("GetParameter: false");
+                            }
+                            break;
                     }
-                    break;
+                } catch (Exception ex) {
+                    output("Error: " + ex.getMessage());
+                }
+                return null;
             }
-        } catch (Exception ex) {
-            outputArea.append("Error: " + ex.getMessage() + "\n");
-        }
+        };
+        new Thread(task).start();
     }
 
-    public void show() {
-        frame.setVisible(true);
+    private void output(String text) {
+        Platform.runLater(() -> outputArea.appendText(text + "\n"));
+    }
+
+    public static void main(String[] args) {
+        launch(args);
     }
 }
 

@@ -9,7 +9,7 @@
 - `Lib/jSerialComm-2.11.2.jar` – библиотека для доступа к COM‑портам.
 - `src/RF` – исходный код.
   - `Main.java` – точка входа: запускает окно `MainUI`.
-  - `MainUI.java` – графический интерфейс на Swing.
+  - `MainUI.java` – графический интерфейс на JavaFX.
     Пользователь выбирает порт, скорость, битность, четность, стоп‑биты и одну из функций класса `Inverters`.
   - `cMAC.java` – "мини‑MAC‑слой". Управляет портом, собирает пакеты и раздает их обработчикам.
   - `ARP.java` – модуль обнаружения устройств (`PING`, выдача собственного адреса, очистка устаревших записей).
@@ -64,8 +64,8 @@
 ## Сборка и запуск
 
 ```bash
-javac -d bin -cp Lib/jSerialComm-2.11.2.jar src/RF/*.java
-java -cp Lib/jSerialComm-2.11.2.jar:bin RF.Main
+javac -d bin -cp Lib/jSerialComm-2.11.2.jar --module-path /usr/share/openjfx/lib --add-modules javafx.controls src/RF/*.java
+java -cp Lib/jSerialComm-2.11.2.jar:bin --module-path /usr/share/openjfx/lib --add-modules javafx.controls RF.Main
 ```
 
 Если компилятор выводит `error: release version 23 not supported`,

@@ -1,11 +1,10 @@
 package RF;
 
+import javafx.application.Application;
+
 public class Main {
     public static void main(String[] args) {
-        javax.swing.SwingUtilities.invokeLater(() -> {
-            MainUI ui = new MainUI();
-            ui.show();
-        });
+        Application.launch(MainUI.class, args);
     }
 }
 
