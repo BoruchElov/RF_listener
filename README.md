@@ -40,5 +40,10 @@ javac -d bin -cp Lib/jSerialComm-2.11.2.jar src/RF/*.java
 java -cp Lib/jSerialComm-2.11.2.jar:bin RF.Main
 ```
 
+Если при компиляции появляется сообщение `error: release version 23 not supported`,
+значит установленная версия JDK не поддерживает целевую платформу 23. В таком
+случае уберите параметр `--release 23` из команды компиляции или обновите JDK до
+поддерживаемой версии.
+
 > В средах без графической подсистемы (headless) запуск GUI приведет к ошибке `HeadlessException`.
 
