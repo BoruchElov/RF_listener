@@ -10,10 +10,6 @@ public class main {
 		
 		MAC.registerHandler(0x01, arp);
 		MAC.registerHandler(0x02, invs);
-		
-		while(true) {
-			
-		}
 
 	}
 

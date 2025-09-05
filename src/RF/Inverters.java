@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class Inverters implements PacketHandler {
+
 	private cMAC MAC;
 	private final ConcurrentHashMap<Address, CompletableFuture<ByteBuffer>> pendingResponses = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
