@@ -1,0 +1,12 @@
+# Maven build
+/target/
+
+# IDE files
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+
+# Other build outputs
+/bin/
